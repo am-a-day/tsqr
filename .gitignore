@@ -1,0 +1,12 @@
+node_modules/
+dist/
+
+*.tsbuildinfo
+*.log
+
+.env
+.env.*
+
+_*.json
+_*.mjs
+_*.png
