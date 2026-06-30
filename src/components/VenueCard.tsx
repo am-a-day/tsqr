@@ -6,6 +6,7 @@ import type { Venue } from "@/data/venues";
 import premiumUserIcon from "@/assets/premium-user.svg";
 import {
   fetchBanner,
+  fetchOrgTariff,
   fetchRecommendations,
   type Banner,
   type Recommendation,
@@ -196,16 +197,36 @@ function useObservedInView<T extends Element>(
 }
 
 /** Общая загрузка баннера + отслеживание видимости для карточки. */
+function useResolvedVenueTariff(venue: Venue, enabled: boolean): Venue {
+  const tariff = useQuery({
+    queryKey: ["orgTariff", venue.id],
+    queryFn: () => limitCardRequest(() => fetchOrgTariff(venue.id)),
+    enabled,
+  });
+
+  return {
+    ...venue,
+    isPaid: tariff.data?.isPaid === true,
+  };
+}
+
 function useVenueMedia(venue: Venue) {
   const [ref, inView] = useInView<HTMLAnchorElement>();
   const shouldLoad = useObservedInView(ref, 0, "900px");
+  const resolvedVenue = useResolvedVenueTariff(venue, shouldLoad);
   const alias = aliasOf(venue.url);
   const banner = useQuery({
     queryKey: ["venueBanner", alias],
     queryFn: () => limitCardRequest(() => fetchBanner(alias)),
-    enabled: shouldLoad,
+    enabled: shouldLoad && resolvedVenue.isPaid,
   });
-  return { ref, inView, shouldLoad, banner: banner.data ?? null };
+  return {
+    ref,
+    inView,
+    shouldLoad,
+    venue: resolvedVenue,
+    banner: banner.data ?? null,
+  };
 }
 
 function useVenueRecommendations(venue: Venue, enabled: boolean) {
@@ -344,7 +365,12 @@ function ChipsV1({ venue }: { venue: Venue }) {
 
 function VenueCardV1({ venue }: { venue: Venue }) {
   const href = `https://${venue.url}`;
-  const { ref, inView, banner } = useVenueMedia(venue);
+  const {
+    ref,
+    inView,
+    banner,
+    venue: resolvedVenue,
+  } = useVenueMedia(venue);
 
   return (
     <a
@@ -356,12 +382,12 @@ function VenueCardV1({ venue }: { venue: Venue }) {
     >
       <div className="relative aspect-[5/6] w-full overflow-hidden rounded-2xl bg-muted shadow-sm ring-1 ring-black/5 transition-shadow duration-300 group-hover:shadow-xl group-focus-visible:ring-2 group-focus-visible:ring-ring/60">
         <CardMedia
-          venue={venue}
+          venue={resolvedVenue}
           banner={banner}
           inView={inView}
           cardRef={ref}
         />
-        {venue.isPaid && <GemBadge />}
+        {resolvedVenue.isPaid && <GemBadge />}
 
         <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/85 via-black/40 to-transparent px-3 pb-3 pt-9 backdrop-blur-[2px]">
           <span className="absolute -top-5 left-3 flex size-9 items-center justify-center overflow-hidden rounded-full border-2 border-white bg-white text-sm font-semibold text-foreground shadow-md">
@@ -415,7 +441,12 @@ function ChipsV2({ venue }: { venue: Venue }) {
 
 function VenueCardV2({ venue }: { venue: Venue }) {
   const href = `https://${venue.url}`;
-  const { ref, inView, banner } = useVenueMedia(venue);
+  const {
+    ref,
+    inView,
+    banner,
+    venue: resolvedVenue,
+  } = useVenueMedia(venue);
 
   return (
     <a
@@ -427,12 +458,12 @@ function VenueCardV2({ venue }: { venue: Venue }) {
     >
       <div className="relative aspect-[5/6] w-full overflow-hidden rounded-[19px] bg-muted shadow-sm ring-1 ring-black/5 transition-shadow duration-300 group-hover:shadow-xl group-focus-visible:ring-2 group-focus-visible:ring-ring/60">
         <CardMedia
-          venue={venue}
+          venue={resolvedVenue}
           banner={banner}
           inView={inView}
           cardRef={ref}
         />
-        {venue.isPaid && <GemBadge />}
+        {resolvedVenue.isPaid && <GemBadge />}
       </div>
 
       {/* Всё под фото; пустые поля скрыты, контент поджат к верху */}
@@ -669,10 +700,16 @@ function HeroMediaV3({
 }
 
 function VenueCardV3({ venue }: { venue: Venue }) {
-  const { ref, inView, shouldLoad, banner } = useVenueMedia(venue);
-  const recs = useVenueRecommendations(venue, shouldLoad);
+  const {
+    ref,
+    inView,
+    shouldLoad,
+    banner,
+    venue: resolvedVenue,
+  } = useVenueMedia(venue);
+  const recs = useVenueRecommendations(resolvedVenue, shouldLoad);
 
-  const showRecommendations = venue.isPaid && (recs?.length ?? 0) > 0;
+  const showRecommendations = resolvedVenue.isPaid && (recs?.length ?? 0) > 0;
 
   return (
     <a
@@ -683,13 +720,13 @@ function VenueCardV3({ venue }: { venue: Venue }) {
       className="group flex flex-col gap-[11px] outline-none transition-transform duration-300 hover:-translate-y-1 focus-visible:-translate-y-1"
     >
       <HeroMediaV3
-        venue={venue}
+        venue={resolvedVenue}
         banner={banner}
         recs={showRecommendations ? recs : []}
         inView={inView}
         cardRef={ref}
       />
-      <BodyV3 venue={venue} />
+      <BodyV3 venue={resolvedVenue} />
     </a>
   );
 }
@@ -817,8 +854,14 @@ function HeroMediaV4({
 }
 
 function VenueCardV4({ venue }: { venue: Venue }) {
-  const { ref, inView, shouldLoad, banner } = useVenueMedia(venue);
-  const recs = useVenueRecommendations(venue, shouldLoad);
+  const {
+    ref,
+    inView,
+    shouldLoad,
+    banner,
+    venue: resolvedVenue,
+  } = useVenueMedia(venue);
+  const recs = useVenueRecommendations(resolvedVenue, shouldLoad);
 
   return (
     <a
@@ -829,13 +872,13 @@ function VenueCardV4({ venue }: { venue: Venue }) {
       className="group flex flex-col gap-[11px] outline-none transition-transform duration-300 hover:-translate-y-1 focus-visible:-translate-y-1"
     >
       <HeroMediaV4
-        venue={venue}
+        venue={resolvedVenue}
         banner={banner}
         recs={recs}
         inView={inView}
         cardRef={ref}
       />
-      <BodyV3 venue={venue} />
+      <BodyV3 venue={resolvedVenue} />
     </a>
   );
 }
@@ -847,19 +890,23 @@ function serviceText(venue: Venue) {
 }
 
 function VenueCardV5({ venue }: { venue: Venue }) {
-  const services = serviceText(venue);
+  const ref = useRef<HTMLAnchorElement>(null);
+  const shouldLoad = useObservedInView(ref, 0, "900px");
+  const resolvedVenue = useResolvedVenueTariff(venue, shouldLoad);
+  const services = serviceText(resolvedVenue);
 
   return (
     <a
+      ref={ref}
       href={`https://${venue.url}`}
       target="_blank"
       rel="noreferrer"
       className={
         "group relative flex h-full min-h-[169px] flex-col items-start justify-center overflow-hidden rounded-[23px] border-[3px] border-white p-4 outline-none backdrop-blur-[19.984px] transition-all duration-300 hover:-translate-y-1 focus-visible:-translate-y-1 focus-visible:ring-2 focus-visible:ring-ring/60 " +
-        (venue.isPaid ? "gap-3 bg-white" : "bg-[#faf8f4]")
+        (resolvedVenue.isPaid ? "gap-3 bg-white" : "bg-[#faf8f4]")
       }
     >
-      {venue.isPaid && (
+      {resolvedVenue.isPaid && (
         <>
           <span
             className="pointer-events-none absolute left-[-10px] top-[94px] z-0 h-[71px] w-[341px] rounded-full opacity-100 blur-2xl transition-opacity duration-300 group-hover:opacity-0 group-focus-visible:opacity-0"
@@ -878,7 +925,7 @@ function VenueCardV5({ venue }: { venue: Venue }) {
         </>
       )}
 
-      {venue.isPaid && (
+      {resolvedVenue.isPaid && (
         <span className="pointer-events-none absolute right-4 top-[13px] z-20 flex h-[26px] items-center justify-center gap-1 rounded-[9px] border border-[#d6d3d1] bg-white px-1.5 text-sm font-normal leading-none text-[#292524] opacity-0 transition-opacity duration-200 group-hover:opacity-100 group-focus-visible:opacity-100">
           Открыть меню
           <ExternalLink className="size-4" strokeWidth={1.8} />
@@ -889,22 +936,22 @@ function VenueCardV5({ venue }: { venue: Venue }) {
         <span
           className={
             "flex shrink-0 items-center justify-center rounded-full p-1 transition-colors duration-200 " +
-            (venue.isPaid
+            (resolvedVenue.isPaid
               ? "border border-[rgba(217,119,87,0.5)] group-hover:border-[#e85423] group-focus-visible:border-[#e85423]"
               : "")
           }
         >
           <span className="flex size-[38px] items-center justify-center overflow-hidden rounded-full bg-[#292524] text-[10px] font-bold leading-none text-white">
-            <VenueLogo logo={venue.logo} name={venue.name} />
+            <VenueLogo logo={resolvedVenue.logo} name={resolvedVenue.name} />
           </span>
         </span>
 
         <div className="flex w-full flex-col gap-0.5">
           <div className="flex min-w-0 items-center gap-1">
             <h3 className="line-clamp-2 min-w-0 text-lg font-semibold leading-tight text-[#292524]">
-              {venue.name}
+              {resolvedVenue.name}
             </h3>
-            {venue.isPaid && (
+            {resolvedVenue.isPaid && (
               <span
                 title="Расширенная витрина"
                 aria-label="Расширенная витрина"
@@ -915,14 +962,14 @@ function VenueCardV5({ venue }: { venue: Venue }) {
             )}
           </div>
 
-          {(venue.city || services) && (
+          {(resolvedVenue.city || services) && (
             <div className="flex max-w-full items-center gap-[5px] overflow-hidden text-sm leading-normal">
-              {venue.city && (
+              {resolvedVenue.city && (
                 <span className="shrink-0 font-medium text-[#79716b]">
-                  {venue.city}
+                  {resolvedVenue.city}
                 </span>
               )}
-              {venue.city && services && (
+              {resolvedVenue.city && services && (
                 <span className="shrink-0 text-[8px] text-[#79716b]">•</span>
               )}
               {services && (
@@ -935,14 +982,14 @@ function VenueCardV5({ venue }: { venue: Venue }) {
         </div>
       </div>
 
-      {venue.title && (
+      {resolvedVenue.title && (
         <p
           className={
             "relative line-clamp-2 text-sm leading-normal text-[#44403b] " +
-            (!venue.isPaid ? "hidden" : "")
+            (!resolvedVenue.isPaid ? "hidden" : "")
           }
         >
-          {venue.title}
+          {resolvedVenue.title}
         </p>
       )}
     </a>
@@ -1105,13 +1152,14 @@ function BodyD({ venue }: { venue: Venue }) {
 function VenueCardV6({ venue }: { venue: Venue }) {
   const ref = useRef<HTMLAnchorElement>(null);
   const shouldLoad = useObservedInView(ref, 0, "900px");
+  const resolvedVenue = useResolvedVenueTariff(venue, shouldLoad);
   const alias = aliasOf(venue.url);
   const banner = useQuery({
     queryKey: ["venueBanner", alias],
     queryFn: () => limitCardRequest(() => fetchBanner(alias)),
-    enabled: shouldLoad && venue.isPaid,
+    enabled: shouldLoad && resolvedVenue.isPaid,
   });
-  const recs = useVenueRecommendations(venue, shouldLoad);
+  const recs = useVenueRecommendations(resolvedVenue, shouldLoad);
 
   return (
     <a
@@ -1121,20 +1169,20 @@ function VenueCardV6({ venue }: { venue: Venue }) {
       rel="noreferrer"
       className="group relative flex h-[199px] flex-col items-start gap-3 overflow-hidden rounded-[23px] border-[3px] border-white bg-white pb-4 pl-2 pr-4 pt-2 outline-none backdrop-blur-[19.984px] focus-visible:ring-2 focus-visible:ring-ring/60"
     >
-      {venue.isPaid ? (
-        <PreviewD venue={venue} banner={banner.data ?? null} recs={recs} />
+      {resolvedVenue.isPaid ? (
+        <PreviewD venue={resolvedVenue} banner={banner.data ?? null} recs={recs} />
       ) : (
-        <BrandPreviewD venue={venue} />
+        <BrandPreviewD venue={resolvedVenue} />
       )}
 
-      <DLogo venue={venue} className="absolute left-[16px] top-[54px] z-20" />
+      <DLogo venue={resolvedVenue} className="absolute left-[16px] top-[54px] z-20" />
 
       <div className="relative z-10 flex w-full min-w-0 flex-col gap-3 pl-0">
-        <BodyD venue={venue} />
+        <BodyD venue={resolvedVenue} />
 
-        {venue.title && (
+        {resolvedVenue.title && (
           <p className="line-clamp-2 max-w-[239px] text-sm leading-normal text-[#44403b]">
-            {venue.title}
+            {resolvedVenue.title}
           </p>
         )}
       </div>

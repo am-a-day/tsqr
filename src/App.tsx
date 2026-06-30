@@ -19,7 +19,6 @@ import {
 import { VENUES, type Venue } from "@/data/venues";
 import {
   fetchVenues,
-  enrichVenuesTariff,
   enrichVenuesScans,
   UnauthorizedError,
 } from "@/lib/api";
@@ -67,7 +66,6 @@ function applySnapshot(venues: Venue[]) {
 
 async function fetchStorefrontVenues() {
   const venues = await fetchVenues();
-  await enrichVenuesTariff(venues);
   applySnapshot(venues);
   return venues;
 }
@@ -93,7 +91,7 @@ export default function App() {
 
   // Колонки фиксированы по 260px (макс. ширина карточки), сетка центрируется.
   const venuesQuery = useQuery({
-    queryKey: ["storefrontVenues"],
+    queryKey: ["storefrontVenues", "base"],
     queryFn: fetchStorefrontVenues,
   });
   const baseVenues = venuesQuery.data ?? (venuesQuery.isError ? VENUES : []);

@@ -101,7 +101,7 @@ const ORG_TARIFF =
 
 /** Набор платных типов тарифа (price > 0) из каталога. Кешируется. */
 let paidTypesPromise: Promise<Set<string>> | null = null;
-function fetchPaidTariffTypes(): Promise<Set<string>> {
+export function fetchPaidTariffTypes(): Promise<Set<string>> {
   if (!paidTypesPromise) {
     paidTypesPromise = fetch(TARIFF_CATALOG)
       .then((r) => r.json())
@@ -114,7 +114,7 @@ function fetchPaidTariffTypes(): Promise<Set<string>> {
 }
 
 const tariffCache = new Map<string, Promise<string | null>>();
-function fetchTariffType(orgId: string): Promise<string | null> {
+export function fetchTariffType(orgId: string): Promise<string | null> {
   const cached = tariffCache.get(orgId);
   if (cached) return cached;
   const p = fetch(ORG_TARIFF + orgId)
@@ -123,6 +123,20 @@ function fetchTariffType(orgId: string): Promise<string | null> {
     .catch(() => null);
   tariffCache.set(orgId, p);
   return p;
+}
+
+export async function fetchOrgTariff(orgId: string): Promise<{
+  tariffType: string | null;
+  isPaid: boolean;
+}> {
+  const [paidTypes, tariffType] = await Promise.all([
+    fetchPaidTariffTypes(),
+    fetchTariffType(orgId),
+  ]);
+  return {
+    tariffType,
+    isPaid: tariffType ? paidTypes.has(tariffType) : false,
+  };
 }
 
 /** Запускает fn по items с ограничением одновременных задач. */
