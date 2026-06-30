@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { ExternalLink, MapPin } from "lucide-react";
+import { MapPin } from "lucide-react";
 import { Diamond as Gem, Sparkle } from "@phosphor-icons/react";
 import type { Venue } from "@/data/venues";
 import premiumUserIcon from "@/assets/premium-user.svg";
@@ -117,6 +117,36 @@ if (typeof window !== "undefined") {
 
 const isUrl = (s: string | null | undefined): s is string =>
   !!s && /^https?:\/\//.test(s);
+
+const VIDEO_URL_EXT = /\.(mp4|webm|mov|m4v)(?:[?#]|$)/i;
+
+/** Брендовый градиент-обводка платных карточек (как иконка-gem на макете). */
+const BRAND_GRADIENT =
+  "linear-gradient(90deg, #43b6fb 0%, #d90baf 35.6%, #e55475 69.2%, #46cd3c 100%)";
+/** Градиент-бордер через background-clip: белая заливка + градиентная рамка. */
+const brandBorderStyle: React.CSSProperties = {
+  border: "1.5px solid transparent",
+  background: `linear-gradient(#fff, #fff) padding-box, ${BRAND_GRADIENT} border-box`,
+};
+
+function isVideoMedia(media?: Banner | null) {
+  return media?.kind === "video" || VIDEO_URL_EXT.test(media?.url ?? "");
+}
+
+function usePrefersReducedMotion() {
+  const [reduced, setReduced] = useState(false);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const query = window.matchMedia("(prefers-reduced-motion: reduce)");
+    const update = () => setReduced(query.matches);
+    update();
+    query.addEventListener("change", update);
+    return () => query.removeEventListener("change", update);
+  }, []);
+
+  return reduced;
+}
 
 /** Логотип: настоящая картинка (URL), эмодзи-заглушка или инициалы. */
 export function VenueLogo({
@@ -901,47 +931,30 @@ function VenueCardV5({ venue }: { venue: Venue }) {
       href={`https://${venue.url}`}
       target="_blank"
       rel="noreferrer"
+      style={resolvedVenue.isPaid ? brandBorderStyle : undefined}
       className={
-        "group relative flex h-full min-h-[169px] flex-col items-start justify-center overflow-hidden rounded-[23px] border-[3px] border-white p-4 outline-none backdrop-blur-[19.984px] transition-all duration-300 hover:-translate-y-1 focus-visible:-translate-y-1 focus-visible:ring-2 focus-visible:ring-ring/60 " +
-        (resolvedVenue.isPaid ? "gap-3 bg-white" : "bg-[#faf8f4]")
+        "group relative flex h-full min-h-[169px] flex-col items-start justify-center overflow-hidden rounded-[23px] border p-4 outline-none transition-all duration-300 hover:-translate-y-0.5 focus-visible:-translate-y-0.5 focus-visible:ring-2 focus-visible:ring-ring/50 " +
+        (resolvedVenue.isPaid
+          ? "gap-3 shadow-[0_10px_26px_rgba(41,37,36,0.06)] hover:shadow-[0_16px_38px_rgba(41,37,36,0.12)]"
+          : "border-[#eee9e2] bg-[#f7f5f1] shadow-none hover:border-[#ded8cf]")
       }
     >
-      {resolvedVenue.isPaid && (
-        <>
-          <span
-            className="pointer-events-none absolute left-[-10px] top-[94px] z-0 h-[71px] w-[341px] rounded-full opacity-100 blur-2xl transition-opacity duration-300 group-hover:opacity-0 group-focus-visible:opacity-0"
-            style={{
-              background:
-                "radial-gradient(ellipse at center, rgba(217,119,87,0.16) 0%, rgba(248,221,196,0.68) 44%, rgba(255,255,255,0) 76%)",
-            }}
-          />
-          <span
-            className="pointer-events-none absolute left-[-10px] top-[54px] z-0 h-[71px] w-[341px] rounded-full opacity-0 blur-2xl transition-opacity duration-300 group-hover:opacity-100 group-focus-visible:opacity-100"
-            style={{
-              background:
-                "radial-gradient(ellipse at center, rgba(232,84,35,0.20) 0%, rgba(248,221,196,0.74) 44%, rgba(255,255,255,0) 76%)",
-            }}
-          />
-        </>
-      )}
 
-      {resolvedVenue.isPaid && (
-        <span className="pointer-events-none absolute right-4 top-[13px] z-20 flex h-[26px] items-center justify-center gap-1 rounded-[9px] border border-[#d6d3d1] bg-white px-1.5 text-sm font-normal leading-none text-[#292524] opacity-0 transition-opacity duration-200 group-hover:opacity-100 group-focus-visible:opacity-100">
-          Открыть меню
-          <ExternalLink className="size-4" strokeWidth={1.8} />
-        </span>
-      )}
-
-      <div className="relative z-10 flex w-full flex-col items-start gap-1">
+      <div
+        className={
+          "relative z-10 flex w-full flex-col items-start " +
+          (resolvedVenue.isPaid ? "gap-2.5" : "gap-2")
+        }
+      >
         <span
           className={
-            "flex shrink-0 items-center justify-center rounded-full p-1 transition-colors duration-200 " +
+            "flex shrink-0 items-center justify-center overflow-hidden rounded-full border bg-white transition-colors duration-200 " +
             (resolvedVenue.isPaid
-              ? "border border-[rgba(217,119,87,0.5)] group-hover:border-[#e85423] group-focus-visible:border-[#e85423]"
-              : "")
+              ? "size-12 border-[#e7ded5] p-[3px] shadow-[0_7px_16px_rgba(41,37,36,0.10)] group-hover:border-[#e8b08d] group-focus-visible:border-[#e8b08d]"
+              : "size-10 border-[#e7e1d8] p-[3px]")
           }
         >
-          <span className="flex size-[38px] items-center justify-center overflow-hidden rounded-full bg-[#292524] text-[10px] font-bold leading-none text-white">
+          <span className="flex size-full items-center justify-center overflow-hidden rounded-full bg-[#292524] text-[10px] font-bold leading-none text-white">
             <VenueLogo logo={resolvedVenue.logo} name={resolvedVenue.name} />
           </span>
         </span>
@@ -955,9 +968,9 @@ function VenueCardV5({ venue }: { venue: Venue }) {
               <span
                 title="Расширенная витрина"
                 aria-label="Расширенная витрина"
-                className="flex size-[14px] shrink-0 items-center justify-center rounded-full bg-[#e85423]"
+                className="flex size-[18px] shrink-0 items-center justify-center"
               >
-                <Gem size={10} weight="fill" className="text-white" />
+                <img src={premiumUserIcon} alt="" className="size-[18px]" />
               </span>
             )}
           </div>
@@ -982,13 +995,8 @@ function VenueCardV5({ venue }: { venue: Venue }) {
         </div>
       </div>
 
-      {resolvedVenue.title && (
-        <p
-          className={
-            "relative line-clamp-2 text-sm leading-normal text-[#44403b] " +
-            (!resolvedVenue.isPaid ? "hidden" : "")
-          }
-        >
+      {resolvedVenue.isPaid && resolvedVenue.title && (
+        <p className="relative z-10 line-clamp-2 text-sm leading-normal text-[#44403b]">
           {resolvedVenue.title}
         </p>
       )}
@@ -996,15 +1004,31 @@ function VenueCardV5({ venue }: { venue: Venue }) {
   );
 }
 
-function DLogo({ venue, className = "" }: { venue: Venue; className?: string }) {
+function DLogo({
+  venue,
+  className = "",
+  muted = false,
+}: {
+  venue: Venue;
+  className?: string;
+  muted?: boolean;
+}) {
   return (
     <span
       className={
-        "flex size-[38px] items-center justify-center overflow-hidden rounded-full border-[1.4px] border-white bg-white p-[3.3px] shadow-[0_7px_18px_rgba(41,37,36,0.14)] " +
+        "flex size-[38px] items-center justify-center overflow-hidden rounded-full border-[1.4px] bg-white p-[3.3px] " +
+        (muted
+          ? "border-[#ebe4da] shadow-[0_5px_13px_rgba(41,37,36,0.08)] "
+          : "border-white shadow-[0_7px_18px_rgba(41,37,36,0.14)] ") +
         className
       }
     >
-      <span className="flex size-full items-center justify-center overflow-hidden rounded-full bg-[#292524] text-[10px] font-bold leading-none text-white">
+      <span
+        className={
+          "flex size-full items-center justify-center overflow-hidden rounded-full text-[10px] font-bold leading-none text-white " +
+          (muted ? "bg-[#3b352f]" : "bg-[#292524]")
+        }
+      >
         <VenueLogo logo={venue.logo} name={venue.name} />
       </span>
     </span>
@@ -1021,21 +1045,27 @@ function DMediaTile({
   venue: Venue;
 }) {
   const mediaSrc = src ?? banner?.url ?? null;
+  const bannerUrl = banner?.url ?? null;
   const cls = "size-full object-cover";
+  const [videoFailed, setVideoFailed] = useState(false);
+  const reducedMotion = usePrefersReducedMotion();
 
-  if (banner?.kind === "video" && !src) {
+  if (bannerUrl && isVideoMedia(banner) && !src && !videoFailed && !reducedMotion) {
     return (
       <video
-        src={`${banner.url}#t=0.1`}
+        src={bannerUrl}
+        autoPlay
+        loop
         muted
         playsInline
         preload="metadata"
         className={cls}
+        onError={() => setVideoFailed(true)}
       />
     );
   }
 
-  if (mediaSrc) {
+  if (mediaSrc && !isVideoMedia(banner)) {
     return <img src={mediaSrc} alt="" loading="lazy" className={cls} />;
   }
 
@@ -1081,17 +1111,17 @@ function PreviewD({
 function BrandPreviewD({ venue }: { venue: Venue }) {
   return (
     <div
-      className="relative z-10 h-[73px] w-full shrink-0 overflow-hidden rounded-[14px]"
+      className="relative z-10 h-[73px] w-full shrink-0 overflow-hidden rounded-[14px] ring-1 ring-inset ring-[#e7dfd2]"
       style={{
         background:
-          "linear-gradient(103deg, #f6ecd8 0%, #f3f3ed 52%, #edf2e7 100%)",
+          "linear-gradient(103deg, #f2ecdf 0%, #f6f3ed 54%, #eee9de 100%)",
       }}
     >
       <span
-        className="pointer-events-none absolute -left-3 -top-2 h-[78px] w-[96px] rounded-full opacity-50 blur-2xl"
+        className="pointer-events-none absolute -left-4 -top-3 h-[78px] w-[96px] rounded-full opacity-30 blur-2xl"
         style={{
           background:
-            "radial-gradient(ellipse at center, rgba(232,84,35,0.18) 0%, rgba(248,221,196,0.46) 52%, rgba(255,255,255,0) 78%)",
+            "radial-gradient(ellipse at center, rgba(133,104,73,0.16) 0%, rgba(231,218,194,0.38) 54%, rgba(255,255,255,0) 78%)",
         }}
       />
       {isUrl(venue.logo) ? (
@@ -1099,10 +1129,10 @@ function BrandPreviewD({ venue }: { venue: Venue }) {
           src={venue.logo}
           alt=""
           loading="lazy"
-          className="absolute inset-x-0 bottom-[-24px] mx-auto size-24 object-contain opacity-[0.07] blur-[1px]"
+          className="absolute inset-x-0 bottom-[-24px] mx-auto size-24 object-contain opacity-[0.045] blur-[1px]"
         />
       ) : (
-        <span className="absolute inset-x-0 bottom-[-18px] flex justify-center text-5xl opacity-[0.07] blur-[1px]">
+        <span className="absolute inset-x-0 bottom-[-18px] flex justify-center text-5xl opacity-[0.045] blur-[1px]">
           {venue.logo}
         </span>
       )}
@@ -1167,7 +1197,12 @@ function VenueCardV6({ venue }: { venue: Venue }) {
       href={`https://${venue.url}`}
       target="_blank"
       rel="noreferrer"
-      className="group relative flex h-[199px] flex-col items-start gap-3 overflow-hidden rounded-[23px] border-[3px] border-white bg-white pb-4 pl-2 pr-4 pt-2 outline-none backdrop-blur-[19.984px] focus-visible:ring-2 focus-visible:ring-ring/60"
+      className={
+        "group relative flex h-[199px] flex-col items-start gap-3 overflow-hidden rounded-[23px] border-[3px] pb-4 pl-2 pr-4 pt-2 outline-none backdrop-blur-[19.984px] transition-all duration-300 focus-visible:ring-2 focus-visible:ring-ring/60 " +
+        (resolvedVenue.isPaid
+          ? "border-white bg-white hover:-translate-y-0.5 hover:shadow-[0_14px_34px_rgba(41,37,36,0.10)]"
+          : "border-[#f2ece2] bg-[#f5f1e9] hover:-translate-y-0.5 hover:border-[#e6dccf]")
+      }
     >
       {resolvedVenue.isPaid ? (
         <PreviewD venue={resolvedVenue} banner={banner.data ?? null} recs={recs} />
@@ -1175,12 +1210,16 @@ function VenueCardV6({ venue }: { venue: Venue }) {
         <BrandPreviewD venue={resolvedVenue} />
       )}
 
-      <DLogo venue={resolvedVenue} className="absolute left-[16px] top-[54px] z-20" />
+      <DLogo
+        venue={resolvedVenue}
+        muted={!resolvedVenue.isPaid}
+        className="absolute left-[16px] top-[54px] z-20"
+      />
 
       <div className="relative z-10 flex w-full min-w-0 flex-col gap-3 pl-0">
         <BodyD venue={resolvedVenue} />
 
-        {resolvedVenue.title && (
+        {resolvedVenue.isPaid && resolvedVenue.title && (
           <p className="line-clamp-2 max-w-[239px] text-sm leading-normal text-[#44403b]">
             {resolvedVenue.title}
           </p>

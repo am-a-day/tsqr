@@ -102,8 +102,9 @@ export default function App() {
       ? "mock"
       : "live";
 
-  const gridCols =
-    "md:grid-cols-2 xl:grid-cols-4";
+  // 330px cards, centered, with at most three columns: 3 * 330 + 2 * 24 gap.
+  const cardGrid =
+    "mx-auto max-w-[1038px] grid-cols-[minmax(0,330px)] justify-center sm:grid-cols-[repeat(auto-fit,330px)]";
 
   function changeVariant(v: CardVariant) {
     setVariant(v);
@@ -331,9 +332,9 @@ export default function App() {
 
         {source === "loading" ? (
           <div className={cn(
-              "mt-4 grid grid-cols-1 gap-6",
+              "mt-4 grid gap-6",
               variant === "v5" || variant === "v6" ? "items-stretch" : "items-start",
-              gridCols,
+              cardGrid,
             )}>
             {Array.from({ length: 8 }).map((_, i) => (
               <SkeletonCard key={i} />
@@ -342,9 +343,9 @@ export default function App() {
         ) : visible.length > 0 ? (
           <>
             <div className={cn(
-              "mt-4 grid grid-cols-1 gap-6",
+              "mt-4 grid gap-6",
               variant === "v5" || variant === "v6" ? "items-stretch" : "items-start",
-              gridCols,
+              cardGrid,
             )}>
               {visible.slice(0, visibleCount).map((venue) => (
                 <VenueCard key={venue.id} venue={venue} variant={variant} />
