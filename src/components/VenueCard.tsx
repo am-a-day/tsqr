@@ -120,13 +120,11 @@ const isUrl = (s: string | null | undefined): s is string =>
 
 const VIDEO_URL_EXT = /\.(mp4|webm|mov|m4v)(?:[?#]|$)/i;
 
-/** Брендовый градиент-обводка платных карточек (как иконка-gem на макете). */
+/** Брендовый градиент для premium-маркеров из макета. */
 const BRAND_GRADIENT =
   "linear-gradient(90deg, #43b6fb 0%, #d90baf 35.6%, #e55475 69.2%, #46cd3c 100%)";
-/** Градиент-бордер через background-clip: белая заливка + градиентная рамка. */
-const brandBorderStyle: React.CSSProperties = {
-  border: "1.5px solid transparent",
-  background: `linear-gradient(#fff, #fff) padding-box, ${BRAND_GRADIENT} border-box`,
+const premiumLogoRingStyle: React.CSSProperties = {
+  background: BRAND_GRADIENT,
 };
 
 function isVideoMedia(media?: Banner | null) {
@@ -931,14 +929,23 @@ function VenueCardV5({ venue }: { venue: Venue }) {
       href={`https://${venue.url}`}
       target="_blank"
       rel="noreferrer"
-      style={resolvedVenue.isPaid ? brandBorderStyle : undefined}
       className={
-        "group relative flex h-full min-h-[169px] flex-col items-start justify-center overflow-hidden rounded-[23px] border p-4 outline-none transition-all duration-300 hover:-translate-y-0.5 focus-visible:-translate-y-0.5 focus-visible:ring-2 focus-visible:ring-ring/50 " +
+        "group relative flex h-full min-h-[166px] flex-col items-start justify-center overflow-hidden rounded-[23px] border-2 p-4 outline-none transition-all duration-300 hover:-translate-y-0.5 focus-visible:-translate-y-0.5 focus-visible:ring-2 focus-visible:ring-ring/50 " +
         (resolvedVenue.isPaid
-          ? "gap-3 shadow-[0_10px_26px_rgba(41,37,36,0.06)] hover:shadow-[0_16px_38px_rgba(41,37,36,0.12)]"
-          : "border-[#eee9e2] bg-[#f7f5f1] shadow-none hover:border-[#ded8cf]")
+          ? "gap-3 border-white bg-white shadow-[0_10px_24px_rgba(41,37,36,0.045)] hover:shadow-[0_14px_30px_rgba(41,37,36,0.075)]"
+          : "border-white/70 bg-white/60 shadow-none backdrop-blur-[20px] hover:bg-white/72")
       }
     >
+      {resolvedVenue.isPaid && (
+        <span
+          aria-hidden
+          className="pointer-events-none absolute -left-[98px] -top-[42px] h-[266px] w-[488px] -rotate-[0.8deg] opacity-[0.42]"
+          style={{
+            background:
+              "conic-gradient(from 103deg at 24% 28%, rgba(255,255,255,0) 0deg, rgba(255,255,255,0.72) 18deg, rgba(247,245,239,0.34) 34deg, rgba(255,255,255,0) 54deg, rgba(255,255,255,0.58) 76deg, rgba(255,255,255,0) 102deg, rgba(255,255,255,0) 360deg)",
+          }}
+        />
+      )}
 
       <div
         className={
@@ -947,14 +954,22 @@ function VenueCardV5({ venue }: { venue: Venue }) {
         }
       >
         <span
+          style={resolvedVenue.isPaid ? premiumLogoRingStyle : undefined}
           className={
-            "flex shrink-0 items-center justify-center overflow-hidden rounded-full border bg-white transition-colors duration-200 " +
+            "flex shrink-0 items-center justify-center overflow-hidden rounded-full transition-colors duration-200 " +
             (resolvedVenue.isPaid
-              ? "size-12 border-[#e7ded5] p-[3px] shadow-[0_7px_16px_rgba(41,37,36,0.10)] group-hover:border-[#e8b08d] group-focus-visible:border-[#e8b08d]"
-              : "size-10 border-[#e7e1d8] p-[3px]")
+              ? "size-[54px] p-[2px] shadow-none"
+              : "size-[54px] bg-transparent p-[4.7px]")
           }
         >
-          <span className="flex size-full items-center justify-center overflow-hidden rounded-full bg-[#292524] text-[10px] font-bold leading-none text-white">
+          <span
+            className={
+              "flex size-full items-center justify-center overflow-hidden rounded-full text-[10px] font-bold leading-none " +
+              (resolvedVenue.isPaid
+                ? "bg-white p-[2.7px] text-[#292524]"
+                : "bg-[#e8ddd0] text-[#292524]")
+            }
+          >
             <VenueLogo logo={resolvedVenue.logo} name={resolvedVenue.name} />
           </span>
         </span>
@@ -968,9 +983,10 @@ function VenueCardV5({ venue }: { venue: Venue }) {
               <span
                 title="Расширенная витрина"
                 aria-label="Расширенная витрина"
-                className="flex size-[18px] shrink-0 items-center justify-center"
+                className="flex size-[14px] shrink-0 items-center justify-center rounded-full p-0.5"
+                style={{ background: BRAND_GRADIENT }}
               >
-                <img src={premiumUserIcon} alt="" className="size-[18px]" />
+                <img src={premiumUserIcon} alt="" className="size-2.5" />
               </span>
             )}
           </div>

@@ -102,9 +102,9 @@ export default function App() {
       ? "mock"
       : "live";
 
-  // 330px cards, centered, with at most three columns: 3 * 330 + 2 * 24 gap.
+  // 334px cards, centered, with at most three columns.
   const cardGrid =
-    "mx-auto max-w-[1038px] grid-cols-[minmax(0,330px)] justify-center sm:grid-cols-[repeat(auto-fit,330px)]";
+    "mx-auto max-w-[1050px] grid-cols-[minmax(0,334px)] justify-center sm:grid-cols-[repeat(auto-fit,334px)]";
 
   function changeVariant(v: CardVariant) {
     setVariant(v);
@@ -181,7 +181,7 @@ export default function App() {
     <div
       className={cn(
         "min-h-screen",
-        variant === "v5" || variant === "v6" ? "bg-[#f3f3ed]" : "bg-background",
+        variant === "v5" || variant === "v6" ? "bg-[#f4f3f0]" : "bg-background",
       )}
     >
       {/* ===== HERO ===== */}
@@ -190,7 +190,7 @@ export default function App() {
           className={cn(
             "pointer-events-none absolute inset-0",
             variant === "v5" || variant === "v6"
-              ? "bg-[#f3f3ed]"
+              ? "bg-[#f4f3f0]"
               : "bg-gradient-to-b from-accent/40 via-background to-background",
           )}
         />
